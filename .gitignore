@@ -1,0 +1,4 @@
+sample_helm/generated_questions.txt
+sample_helm/generated_values.yaml
+__pycache__
+*.pyc

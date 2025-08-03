@@ -1,0 +1,23 @@
+replicaCount: 1
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  port: 80
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+podAnnotations: {}
+podLabels: {}
+imagePullSecrets: []
+podSecurityContext: {}
+securityContext: {}
+livenessProbe: {}
+readinessProbe: {}
+resources: {}
+nameOverride: ""
+fullnameOverride: ""
