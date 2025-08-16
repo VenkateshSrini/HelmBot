@@ -1,0 +1,26 @@
+{
+  "qa_pairs": [
+   {
+      "question": "1. Do you want to enable autoscaling for this application? (Controls whether the application automatically scales based on resource usage)",
+      "answer": "yes"
+    },
+    {
+      "question": "2. What container image do you want to use for this application? (Specifies the Docker image to run in the containers)",
+      "answer": "book-my-hotel"
+    },
+    {
+      "question": "3. How many replicas of the application do you want to run? (Controls the number of instances of the application running)",
+      "answer": "3"
+    },
+    {
+      "question": "4. What type of service do you want to expose for this application? (Specifies the type of Kubernetes service for accessing the application)",
+      "answer": "ClusterIP"
+    },
+    {
+      "question": "5. Do you want to use a specific service account for this application? (Specifies the service account used by the application)",
+      "answer": "my-service-account"
+    }
+
+    
+  ]
+}

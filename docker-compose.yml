@@ -1,0 +1,13 @@
+# Docker Compose for HelmBot API
+version: '3.8'
+
+services:
+  helmbot-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./sample_helm:/app/sample_helm
+    restart: unless-stopped
