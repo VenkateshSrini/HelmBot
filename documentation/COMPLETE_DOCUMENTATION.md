@@ -220,6 +220,7 @@ GPT4_TEMPERATURE = 0.3     # For precise tasks (YAML generation)
 |----------|--------|-----------|--------------|
 | **Anthropic** | Claude Sonnet 4 | Advanced reasoning, large context | `ANTHROPIC_API_KEY` |
 | **OpenAI** | GPT-3.5, GPT-4 | General purpose, established | `OPENAI_API_KEY` |
+| **AWS Bedrock** | Claude 3.5 Sonnet v2, Titan, etc. | Enterprise, scalable, AWS integration | AWS Credentials |
 
 ### Provider Configuration
 
@@ -236,6 +237,60 @@ DEFAULT_MODEL = 'gpt-3.5-turbo'
 GPT4_MODEL = 'gpt-4.1'
 ```
 
+#### Switching to AWS Bedrock (Currently Commented)
+```python
+# PROVIDER = 'bedrock'
+# DEFAULT_MODEL = 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+# GPT4_MODEL = 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+# BEDROCK_REGION = 'us-east-1'
+```
+
+### AWS Bedrock Setup
+
+#### Prerequisites
+```bash
+# Install required packages
+pip install langchain-aws boto3
+```
+
+#### Credential Configuration
+
+**Option 1: Environment Variables**
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+**Option 2: AWS CLI Configuration**
+```bash
+aws configure
+```
+
+**Option 3: Interactive Input (Automatic)**
+- HelmBot will prompt for credentials if not found
+- Provides helpful guidance for obtaining AWS credentials
+- Sets up environment variables for current session
+
+#### Available Models
+
+| Model ID | Description | Use Case |
+|----------|-------------|----------|
+| `anthropic.claude-3-5-sonnet-20241022-v2:0` | Claude 3.5 Sonnet v2 | Advanced reasoning, recommended |
+| `anthropic.claude-3-haiku-20240307-v1:0` | Claude 3 Haiku | Fast responses, cost-effective |
+| `amazon.titan-text-express-v1` | Amazon Titan Express | General purpose, AWS native |
+
+#### Regional Availability
+- **Recommended Regions**: `us-east-1`, `us-west-2`, `eu-west-1`
+- **Model Availability**: Varies by region (check AWS console)
+- **Performance**: Choose closest region for better latency
+
+#### Cost Considerations
+- **Pay-per-use**: No upfront costs, charge per token
+- **Regional Pricing**: Varies by AWS region
+- **Model Pricing**: Different models have different rates
+- **Monitoring**: Use AWS CloudWatch for usage tracking
+
 ### API Key Management
 
 The system provides **intelligent API key management**:
@@ -246,6 +301,20 @@ The system provides **intelligent API key management**:
 4. **Validation**: Ensures keys are properly formatted
 5. **Session Persistence**: Remembers keys for the current session
 
+#### Provider-Specific Setup
+
+**Anthropic**
+- Environment: `ANTHROPIC_API_KEY`
+- Get Key: https://console.anthropic.com/
+
+**OpenAI**
+- Environment: `OPENAI_API_KEY`
+- Get Key: https://platform.openai.com/
+
+**AWS Bedrock**
+- Environment: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`
+- Setup: https://console.aws.amazon.com/iam/
+
 ### Provider Factory Architecture
 
 ```python
@@ -253,10 +322,41 @@ The system provides **intelligent API key management**:
 class ModelProviderFactory:
     _providers = {
         'openai': OpenAIProvider,
-        'anthropic': AnthropicProvider
+        'anthropic': AnthropicProvider,
+        'bedrock': BedrockProvider  # New AWS Bedrock support
         # Easy to add: 'google': GoogleProvider, etc.
     }
 ```
+
+### Provider Implementation Details
+
+#### Abstract Base Class Design
+```python
+class ModelProvider(ABC):
+    """Abstract base class for AI model providers"""
+    
+    @abstractmethod
+    def setup_api_key(self) -> None:
+        """Setup API key/credentials for the provider"""
+        pass
+    
+    @abstractmethod
+    def create_llm(self, model_name: str, temperature: float) -> Any:
+        """Create LLM instance for the provider"""
+        pass
+    
+    @abstractmethod
+    def get_provider_name(self) -> str:
+        """Get the name of the provider"""
+        pass
+```
+
+#### Bedrock Provider Features
+- **Automatic Credential Detection**: Checks AWS credentials in environment
+- **Interactive Setup**: Prompts for credentials if not found
+- **Regional Configuration**: Supports multiple AWS regions
+- **Error Handling**: Provides helpful error messages for common issues
+- **LangChain Integration**: Uses `langchain-aws` for seamless integration
 
 ---
 
@@ -466,7 +566,8 @@ const url = URL.createObjectURL(blob);
 ```
 test/
 ├── Core Tests
-│   ├── test_llm_claude.py          # AI provider integration
+│   ├── test_llm_claude.py          # Anthropic Claude integration
+│   ├── test_bedrock.py             # AWS Bedrock integration
 │   ├── test_complete_flow.py       # End-to-end workflow
 │   └── test_service.py             # API service functionality
 ├── Configuration Tests
@@ -486,9 +587,19 @@ test/
 python test/run_all_tests.py
 
 # Run specific test categories
-python test/test_llm_claude.py
-python test/test_complete_flow.py
-python test/test_service.py
+python test/test_llm_claude.py      # Anthropic Claude testing
+python test/test_bedrock.py         # AWS Bedrock testing
+python test/test_complete_flow.py   # End-to-end workflow
+python test/test_service.py         # API service testing
+```
+
+#### AWS Bedrock Testing
+```bash
+# Test Bedrock provider functionality
+python test/test_bedrock.py
+
+# Interactive testing (requires AWS credentials)
+# Will prompt for credentials if not found in environment
 ```
 
 #### Configuration Demo
@@ -500,11 +611,13 @@ python test/demo_api_setup.py
 ### Test Coverage
 
 - **✅ AI Provider Integration**: Verify Claude Sonnet 4 functionality
+- **✅ AWS Bedrock Integration**: Test AWS Bedrock provider setup and functionality
 - **✅ Question Generation**: Test intelligent question creation
 - **✅ YAML Generation**: Validate output quality and format
 - **✅ API Endpoints**: Comprehensive REST API testing
 - **✅ Error Handling**: Robust error scenarios and recovery
 - **✅ Configuration Management**: Provider switching and setup
+- **✅ Credential Management**: Interactive setup for all providers
 
 ---
 
@@ -653,6 +766,54 @@ uvicorn api.main:app --port 8001
 
 # Check firewall settings
 # Ensure port 8000 is open for local development
+```
+
+#### 6. AWS Bedrock Issues
+**Problem**: AWS credentials or Bedrock access errors
+
+**Solutions**:
+```bash
+# Check AWS credentials
+aws sts get-caller-identity
+
+# Set AWS credentials manually
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_DEFAULT_REGION="us-east-1"
+
+# Windows PowerShell
+$env:AWS_ACCESS_KEY_ID="your-access-key"
+$env:AWS_SECRET_ACCESS_KEY="your-secret-key"
+$env:AWS_DEFAULT_REGION="us-east-1"
+
+# Verify Bedrock service access
+aws bedrock list-foundation-models --region us-east-1
+
+# Check region availability for specific models
+# Not all models are available in all regions
+```
+
+**Common Bedrock Errors**:
+- **AccessDeniedException**: Check IAM permissions for Bedrock
+- **ResourceNotFoundException**: Verify model ID and region
+- **ValidationException**: Check model parameters and request format
+- **ThrottlingException**: Implement retry logic or reduce request rate
+
+**Required IAM Permissions**:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "bedrock:InvokeModel",
+                "bedrock:ListFoundationModels"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
 ```
 
 ### Debug Mode

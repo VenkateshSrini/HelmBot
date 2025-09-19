@@ -1,8 +1,14 @@
-"""LLM manager for handling multiple AI providers (OpenAI, Anthropic) with LangChain"""
+"""LLM manager for handling multiple AI providers (OpenAI, Anthropic, AWS Bedrock) with LangChain"""
 import os
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 from config import DEFAULT_MODEL, GPT4_MODEL, DEFAULT_TEMPERATURE, GPT4_TEMPERATURE, PROVIDER
+
+# Import Bedrock region if it's configured
+try:
+    from config import BEDROCK_REGION
+except ImportError:
+    BEDROCK_REGION = 'us-east-1'  # Default region
 
 
 class ModelProvider(ABC):
@@ -73,12 +79,70 @@ class AnthropicProvider(ModelProvider):
         return "Anthropic"
 
 
+class BedrockProvider(ModelProvider):
+    """AWS Bedrock model provider implementation"""
+    
+    def setup_api_key(self) -> None:
+        """Setup AWS credentials for Bedrock"""
+        # Check for AWS credentials
+        aws_access_key = os.environ.get('AWS_ACCESS_KEY_ID', '').strip()
+        aws_secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY', '').strip()
+        aws_region = os.environ.get('AWS_DEFAULT_REGION', BEDROCK_REGION).strip()
+        
+        if not aws_access_key or not aws_secret_key:
+            print("🔑 AWS credentials not found in environment variables.")
+            print("💡 You need AWS Access Key ID and Secret Access Key to use Bedrock.")
+            print("💡 You can get these from: https://console.aws.amazon.com/iam/")
+            
+            if not aws_access_key:
+                aws_access_key = input("Please enter your AWS Access Key ID: ").strip()
+                if not aws_access_key:
+                    raise ValueError("AWS Access Key ID cannot be empty!")
+                os.environ['AWS_ACCESS_KEY_ID'] = aws_access_key
+            
+            if not aws_secret_key:
+                aws_secret_key = input("Please enter your AWS Secret Access Key: ").strip()
+                if not aws_secret_key:
+                    raise ValueError("AWS Secret Access Key cannot be empty!")
+                os.environ['AWS_SECRET_ACCESS_KEY'] = aws_secret_key
+            
+            if not aws_region:
+                region_input = input(f"Please enter your AWS region (default: {BEDROCK_REGION}): ").strip()
+                aws_region = region_input if region_input else BEDROCK_REGION
+                os.environ['AWS_DEFAULT_REGION'] = aws_region
+            
+            print("✅ AWS credentials are set successfully!")
+        else:
+            print("✅ AWS credentials are already set.")
+            
+        # Set the region for Bedrock
+        if not os.environ.get('AWS_DEFAULT_REGION'):
+            os.environ['AWS_DEFAULT_REGION'] = aws_region or BEDROCK_REGION
+    
+    def create_llm(self, model_name: str, temperature: float) -> Any:
+        """Create AWS Bedrock LLM instance"""
+        try:
+            from langchain_aws import ChatBedrock
+            return ChatBedrock(
+                model_id=model_name,
+                model_kwargs={"temperature": temperature},
+                region_name=os.environ.get('AWS_DEFAULT_REGION', BEDROCK_REGION)
+            )
+        except ImportError:
+            raise ImportError("langchain-aws package is required for Bedrock support. "
+                            "Install it with: pip install langchain-aws boto3")
+    
+    def get_provider_name(self) -> str:
+        return "AWS Bedrock"
+
+
 class ModelProviderFactory:
     """Factory class for creating model providers"""
     
     _providers = {
         'openai': OpenAIProvider,
-        'anthropic': AnthropicProvider
+        'anthropic': AnthropicProvider,
+        'bedrock': BedrockProvider
     }
     
     @classmethod

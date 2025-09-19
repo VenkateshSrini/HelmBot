@@ -43,6 +43,7 @@ def main():
         "test_llm_claude.py",
         "test_service.py",
         "test_complete_flow.py",
+        "test_bedrock.py",  # AWS Bedrock tests
         # "test_api_key_prompting.py",  # Skip this as it requires user input
     ]
     

@@ -18,8 +18,14 @@ GENERATED_VALUES_FILE = 'generated_values.yaml'
 # Anthropic Models (active)
 DEFAULT_MODEL = 'claude-sonnet-4-20250514'
 GPT4_MODEL = 'claude-sonnet-4-20250514'
+
+# AWS Bedrock Models (commented out)
+# DEFAULT_MODEL = 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+# GPT4_MODEL = 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+# BEDROCK_REGION = 'us-east-1'
+
 DEFAULT_TEMPERATURE = 0.7
 GPT4_TEMPERATURE = 0.3
 
 # Model provider configuration
-PROVIDER = 'anthropic'  # Options: 'openai', 'anthropic'
+PROVIDER = 'anthropic'  # Options: 'openai', 'anthropic', 'bedrock'
